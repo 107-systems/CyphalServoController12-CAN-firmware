@@ -11,10 +11,13 @@
 #include <hardware/watchdog.h>
 
 #include <SPI.h>
+#include <Wire.h>
+
 
 #include <107-Arduino-Cyphal.h>
 #include <107-Arduino-MCP2515.h>
 #include <107-Arduino-UniqueId.h>
+#include <107-Arduino-24LCxx.hpp>
 #include <107-Arduino-CriticalSection.h>
 
 /**************************************************************************************
@@ -31,6 +34,8 @@ static int const MCP2515_CS_PIN  = 17;
 static int const MCP2515_INT_PIN = 20;
 
 static CanardNodeID const DEFAULT_SERVO_CONTROLLER_NODE_ID = 51;
+
+static uint8_t const EEPROM_I2C_DEV_ADDR = 0x50;
 
 static SPISettings const MCP2515x_SPI_SETTING{1000000, MSBFIRST, SPI_MODE0};
 
@@ -70,6 +75,15 @@ ServiceServer execute_command_srv = node_hdl.create_service_server<ExecuteComman
   ExecuteCommand::Request_1_1::_traits_::FixedPortId,
   2*1000*1000UL,
   onExecuteCommand_1_1_Request_Received);
+
+EEPROM_24LCxx eeprom(EEPROM_24LCxx_Type::LC64,
+                     EEPROM_I2C_DEV_ADDR,
+                     [](size_t const dev_addr) { Wire.beginTransmission(dev_addr); },
+                     [](uint8_t const data) { Wire.write(data); },
+                     []() { return Wire.endTransmission(); },
+                     [](uint8_t const dev_addr, size_t const len) -> size_t { return Wire.requestFrom(dev_addr, len); },
+                     []() { return Wire.available(); },
+                     []() { return Wire.read(); });
 
 /* REGISTER ***************************************************************************/
 
@@ -113,6 +127,13 @@ void setup()
     /* saturated uint8[<=50] name */
     "107-systems.OpenCyphalServoController12"
   );
+
+  /* Setup Wire and check EEPROM. */
+  Wire.begin();
+  if (!eeprom.isConnected()) {
+    Serial.println("Error, could not connect to EEPROM");
+    return;
+  }
 
   /* Setup LED pins and initialize */
   pinMode(LED_BUILTIN, OUTPUT);
