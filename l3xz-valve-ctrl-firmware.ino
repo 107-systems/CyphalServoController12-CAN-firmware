@@ -240,7 +240,6 @@ void setup()
   }
 
 #if __GNUC__ >= 11
-  DBG_INFO("cyphal::support::load ... ");
   auto const rc_load = cyphal::support::load(kv_storage, *node_registry);
   if (rc_load.has_value()) {
     DBG_ERROR("cyphal::support::load failed with %d", static_cast<int>(rc_load.value()));
@@ -372,6 +371,9 @@ void setup()
 
 void loop()
 {
+  /* Deal with all pending events of the MCP2515 -
+   * signaled by the INT pin being driven LOW.
+   */
   while(digitalRead(MCP2515_INT_PIN) == LOW)
     mcp2515.onExternalEventHandler();
 
@@ -387,7 +389,7 @@ void loop()
   unsigned long const now = millis();
 
   /* Publish the heartbeat once/second */
-  if(now - prev_heartbeat > UPDATE_PERIOD_HEARTBEAT_ms)
+  if((now - prev_heartbeat) > UPDATE_PERIOD_HEARTBEAT_ms)
   {
     prev_heartbeat = now;
 
