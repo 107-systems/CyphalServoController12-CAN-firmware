@@ -34,4 +34,3 @@ python3 -m pip install yakut
 yakut compile https://github.com/OpenCyphal/public_regulated_data_types/archive/refs/heads/master.zip
 . setup_yakut.sh
 ```
-
