@@ -216,7 +216,7 @@ const auto reg_ro_cyphal_pub_pulse_width_type = node_registry->route ("cyphal.su
 void setup()
 {
   Serial.begin(115200);
-  while (!Serial) { } /* Only for debug. */
+  //while (!Serial) { } /* Only for debug. */
 
   Debug.prettyPrintOn(); /* Enable pretty printing on a shell. */
 
