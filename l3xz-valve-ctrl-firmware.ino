@@ -231,7 +231,7 @@ void setup()
 
   /* Setup all servos. */
   for (size_t s = 0; s < NUM_SERVOS; s++)
-    if (!servo_ctrl[s].attach(SERVO_PINS[s], DEFAULT_MIN_PULSE_WIDTH, DEFAULT_MAX_PULSE_WIDTH, DEFAULT_NEUTRAL_PULSE_WIDTH))
+    if (servo_ctrl[s].attach(SERVO_PINS[s], DEFAULT_MIN_PULSE_WIDTH, DEFAULT_MAX_PULSE_WIDTH, DEFAULT_NEUTRAL_PULSE_WIDTH) < 0)
       DBG_ERROR("Failed to attach servo pin %d", s);
 
   /* Setup LED pins and initialize */
