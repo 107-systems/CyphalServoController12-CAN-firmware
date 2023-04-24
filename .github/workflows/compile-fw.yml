@@ -49,6 +49,7 @@ jobs:
             - name: 107-Arduino-UniqueId
             - name: 107-Arduino-24LCxx
             - name: 107-Arduino-littlefs
+            - name: 107-Arduino-Servo-RP2040
 
           sketches-report-path: ${{ env.SKETCHES_REPORTS_PATH }}
           sketch-paths: ./

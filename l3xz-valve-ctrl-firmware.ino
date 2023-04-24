@@ -21,6 +21,7 @@
 #include <107-Arduino-MCP2515.h>
 #include <107-Arduino-littlefs.h>
 #include <107-Arduino-24LCxx.hpp>
+#include <107-Arduino-Servo-RP2040.h>
 
 #define DBG_ENABLE_ERROR
 #define DBG_ENABLE_WARNING
@@ -81,8 +82,54 @@ ServiceServer execute_command_srv = node_hdl.create_service_server<ExecuteComman
 
 /* SERVOS *****************************************************************************/
 
+class ServoInterface
+{
+public:
+  virtual ~ServoInterface() { }
+  virtual void attach(pin_size_t const pin) = 0;
+  virtual void writeMicroseconds(uint16_t const pulse_width_us) = 0;
+};
+
+class ServoAdapter_PIO final : public ServoInterface
+{
+private:
+  Servo & _servo;
+public:
+  ServoAdapter_PIO(Servo & servo) : _servo{servo} { }
+  virtual ~ServoAdapter_PIO() { }
+  void attach(pin_size_t const pin) override { _servo.attach(pin); }
+  void writeMicroseconds(uint16_t const pulse_width_us) { _servo.writeMicroseconds(pulse_width_us); }
+};
+static Servo servo_0, servo_1, servo_2, servo_3, servo_4, servo_5, servo_6, servo_7;
+
+class ServoAdapter_RP2040 final : public ServoInterface
+{
+private:
+  _107_::Servo & _servo;
+public:
+  ServoAdapter_RP2040(_107_::Servo & servo) : _servo{servo} { }
+  virtual ~ServoAdapter_RP2040() { }
+  void attach(pin_size_t const pin) override { _servo.attach(pin); }
+  void writeMicroseconds(uint16_t const pulse_width_us) { _servo.writeMicroseconds(pulse_width_us); }
+};
+static _107_::Servo servo_8, servo_9, servo_10, servo_11;
+
 static size_t constexpr NUM_SERVOS = 12;
-static std::array<Servo, NUM_SERVOS> servo_ctrl;
+static std::array<std::shared_ptr<ServoInterface>, NUM_SERVOS> servo_ctrl
+{
+  std::make_shared<ServoAdapter_PIO>   (servo_0),
+  std::make_shared<ServoAdapter_PIO>   (servo_1),
+  std::make_shared<ServoAdapter_PIO>   (servo_2),
+  std::make_shared<ServoAdapter_PIO>   (servo_3),
+  std::make_shared<ServoAdapter_PIO>   (servo_4),
+  std::make_shared<ServoAdapter_PIO>   (servo_5),
+  std::make_shared<ServoAdapter_PIO>   (servo_6),
+  std::make_shared<ServoAdapter_PIO>   (servo_7),
+  std::make_shared<ServoAdapter_RP2040>(servo_8),
+  std::make_shared<ServoAdapter_RP2040>(servo_9),
+  std::make_shared<ServoAdapter_RP2040>(servo_10),
+  std::make_shared<ServoAdapter_RP2040>(servo_11)
+};
 static std::array<pin_size_t, NUM_SERVOS> SERVO_PINS =
 {
    2, /* GP2  = SERVO00 */
@@ -171,6 +218,8 @@ void setup()
   Serial.begin(115200);
   while (!Serial) { } /* Only for debug. */
 
+  Debug.prettyPrintOn(); /* Enable pretty printing on a shell. */
+
   /* LITTLEFS/EEPROM ********************************************************************/
   Wire.begin();
 
@@ -232,7 +281,7 @@ void setup()
             continue;
           }
 
-          servo_ctrl[sid].writeMicroseconds(pulse_width_us);
+          servo_ctrl[sid]->writeMicroseconds(pulse_width_us);
         }
       });
 
@@ -262,8 +311,7 @@ void setup()
 
   /* Setup all servos. */
   for (size_t s = 0; s < NUM_SERVOS; s++)
-    if (servo_ctrl[s].attach(SERVO_PINS[s], DEFAULT_MIN_PULSE_WIDTH, DEFAULT_MAX_PULSE_WIDTH, DEFAULT_NEUTRAL_PULSE_WIDTH) < 0)
-      DBG_ERROR("Failed to attach servo pin %d", s);
+    servo_ctrl[s]->attach(SERVO_PINS[s]);
 
   /* Setup LED pins and initialize */
   pinMode(LED2_PIN, OUTPUT);
