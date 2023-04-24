@@ -125,7 +125,7 @@ void setup()
     /* saturated uint8[16] unique_id */
     OpenCyphalUniqueId(),
     /* saturated uint8[<=50] name */
-    "107-systems.OpenCyphalServoController12"
+    "107-systems.l3xz-valve-ctrl-firmware"
   );
 
   /* Setup Wire and check EEPROM. */
