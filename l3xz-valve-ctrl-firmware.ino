@@ -75,10 +75,9 @@ Node node_hdl(node_heap.data(), node_heap.size(), micros, [] (CanardFrame const 
 
 Publisher<Heartbeat_1_0> heartbeat_pub = node_hdl.create_publisher<Heartbeat_1_0>(1*1000*1000UL /* = 1 sec in usecs. */);
 
-ServiceServer execute_command_srv = node_hdl.create_service_server<ExecuteCommand::Request_1_1, ExecuteCommand::Response_1_1>(
-  ExecuteCommand::Request_1_1::_traits_::FixedPortId,
-  2*1000*1000UL,
-  onExecuteCommand_1_1_Request_Received);
+Subscription servo_pulse_width_sub;
+
+ServiceServer execute_command_srv = node_hdl.create_service_server<ExecuteCommand::Request_1_1, ExecuteCommand::Response_1_1>(2*1000*1000UL, onExecuteCommand_1_1_Request_Received);
 
 /* SERVOS *****************************************************************************/
 
@@ -149,14 +148,17 @@ cyphal::support::platform::storage::littlefs::KeyValueStorage kv_storage(filesys
 
 /* REGISTER ***************************************************************************/
 
-static uint16_t node_id = std::numeric_limits<uint16_t>::max();
+static uint16_t     node_id             = std::numeric_limits<uint16_t>::max();
+static CanardPortID port_id_pulse_width = std::numeric_limits<CanardPortID>::max();
 
 #if __GNUC__ >= 11
 
 const auto node_registry = node_hdl.create_registry();
 
-const auto reg_rw_cyphal_node_id          = node_registry->expose("cyphal.node.id", {true}, node_id);
-const auto reg_ro_cyphal_node_description = node_registry->route ("cyphal.node.description", {true}, []() { return "L3X-Z VALVE CONTROLLER"; });
+const auto reg_rw_cyphal_node_id              = node_registry->expose("cyphal.node.id", {true}, node_id);
+const auto reg_ro_cyphal_node_description     = node_registry->route ("cyphal.node.description", {true}, []() { return "L3X-Z VALVE CONTROLLER"; });
+const auto reg_rw_cyphal_sub_pulse_width_id   = node_registry->expose("cyphal.sub.pulse_width.id", {true}, port_id_pulse_width);
+const auto reg_ro_cyphal_pub_pulse_width_type = node_registry->route ("cyphal.sub.pulse_width.type", {true}, []() { return "uavcan.primitive.array.Natural16.1.0"; });
 
 #endif /* __GNUC__ >= 11 */
 
@@ -206,7 +208,36 @@ void setup()
     node_id = 0;
   node_hdl.setNodeId(static_cast<CanardNodeID>(node_id));
 
-  DBG_INFO("Node ID: %d", node_id);
+  if (port_id_pulse_width != std::numeric_limits<CanardPortID>::max())
+    servo_pulse_width_sub = node_hdl.create_subscription<uavcan::primitive::array::Natural16_1_0>(
+      port_id_pulse_width,
+      [](uavcan::primitive::array::Natural16_1_0 const & msg)
+      {
+        for (size_t sid = 0; sid < msg.value.size(); sid++)
+        {
+          if (sid >= NUM_SERVOS) {
+            DBG_WARNING("Servo pulse width message contains more than %d entries", NUM_SERVOS);
+            return;
+          }
+
+          uint16_t const pulse_width_us = msg.value[sid];
+
+          if (pulse_width_us < DEFAULT_MIN_PULSE_WIDTH) {
+            DBG_ERROR("Servo %d pulse width (%d) below minimum valid value (%d)", sid, pulse_width_us, DEFAULT_MIN_PULSE_WIDTH);
+            continue;
+          }
+
+          if (pulse_width_us > DEFAULT_MAX_PULSE_WIDTH) {
+            DBG_ERROR("Servo %d pulse width (%d) above maximum valid value (%d)", sid, pulse_width_us, DEFAULT_MAX_PULSE_WIDTH);
+            continue;
+          }
+
+          servo_ctrl[sid].writeMicroseconds(pulse_width_us);
+        }
+      });
+
+  DBG_INFO("Node ID: %d\n\r\tPULSE WIDTH ID = %d",
+           node_id, port_id_pulse_width);
 
   /* NODE INFO ************************************************************************/
   static const auto node_info = node_hdl.create_node_info
@@ -268,12 +299,17 @@ void setup()
   };
   mcp2515.enableFilter(MCP2515::RxB::RxB0, RXMB0_MASK, RXMB0_FILTER, RXMB0_FILTER_SIZE);
 
-  /* Only pass messages with ID 0 to receive buffer #1 (filtering out most). */
-  uint32_t const RXMB1_MASK = 0x01FFFFFF;
+  /* Only allow messages containing servo pulse width information to pass. */
+  CanardFilter const CAN_FILTER_PULSE_WIDTH = canardMakeFilterForSubject(port_id_pulse_width);
+  DBG_INFO("CAN Filter #2\n\r\tExt. Mask : %8X\n\r\tExt. ID   : %8X",
+           CAN_FILTER_PULSE_WIDTH.extended_mask,
+           CAN_FILTER_PULSE_WIDTH.extended_can_id);
+
+  uint32_t const RXMB1_MASK = CAN_FILTER_PULSE_WIDTH.extended_mask;
   size_t const RXMB1_FILTER_SIZE = 4;
   uint32_t const RXMB1_FILTER[RXMB1_FILTER_SIZE] =
   {
-    MCP2515::CAN_EFF_BITMASK | 0,
+    MCP2515::CAN_EFF_BITMASK | CAN_FILTER_PULSE_WIDTH.extended_can_id,
     MCP2515::CAN_EFF_BITMASK | 0,
     MCP2515::CAN_EFF_BITMASK | 0,
     MCP2515::CAN_EFF_BITMASK | 0

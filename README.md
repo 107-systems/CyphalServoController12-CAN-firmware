@@ -34,3 +34,7 @@ python3 -m pip install yakut
 yakut compile https://github.com/OpenCyphal/public_regulated_data_types/archive/refs/heads/master.zip
 . setup_yakut.sh
 ```
+Set servo pulse width via `yakut` (`cyphal.sub.pulse_width.id` = `4001`):
+```bash
+y pub -N1 4001:uavcan.primitive.array.Natural16.1.0 '[1000, 2000]'
+```
