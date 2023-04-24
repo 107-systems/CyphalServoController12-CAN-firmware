@@ -4,12 +4,12 @@ on:
   pull_request:
     paths:
       - ".github/workflows/compile-fw.yml"
-      - "OpenCyphalServoController12-firmware.ino"
+      - "l3xz-valve-ctrl-firmware.ino"
 
   push:
     paths:
       - ".github/workflows/compile-fw.yml"
-      - "OpenCyphalServoController12-firmware.ino"
+      - "l3xz-valve-ctrl-firmware.ino"
 
 jobs:
   build:
@@ -43,10 +43,12 @@ jobs:
           libraries: |
             - source-path: ./
             - source-url: https://github.com/107-systems/107-Arduino-Cyphal.git
+            - source-url: https://github.com/107-systems/107-Arduino-Cyphal-Support.git
+            - name: 107-Arduino-Debug
             - name: 107-Arduino-MCP2515
             - name: 107-Arduino-UniqueId
-            - name: 107-Arduino-CriticalSection
             - name: 107-Arduino-24LCxx
+            - name: 107-Arduino-littlefs
 
           sketches-report-path: ${{ env.SKETCHES_REPORTS_PATH }}
           sketch-paths: ./
