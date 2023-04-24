@@ -80,6 +80,26 @@ ServiceServer execute_command_srv = node_hdl.create_service_server<ExecuteComman
   2*1000*1000UL,
   onExecuteCommand_1_1_Request_Received);
 
+/* SERVOS *****************************************************************************/
+
+static size_t constexpr NUM_SERVOS = 12;
+static std::array<Servo, NUM_SERVOS> servo_ctrl;
+static std::array<pin_size_t, NUM_SERVOS> SERVO_PINS =
+{
+   2, /* GP2  = SERVO00 */
+   3, /* GP3  = SERVO01 */
+   6, /* GP6  = SERVO02 */
+   7, /* GP7  = SERVO03 */
+   8, /* GP8  = SERVO04 */
+   9, /* GP9  = SERVO05 */
+  10, /* GP10 = SERVO06 */
+  11, /* GP11 = SERVO07 */
+  12, /* GP12 = SERVO08 */
+  13, /* GP13 = SERVO09 */
+  14, /* GP14 = SERVO10 */
+  15  /* GP15 = SERVO11 */
+};
+
 /* LITTLEFS/EEPROM ********************************************************************/
 
 static EEPROM_24LCxx eeprom(EEPROM_24LCxx_Type::LC64,
@@ -208,6 +228,11 @@ void setup()
     /* saturated uint8[<=50] name */
     "107-systems.l3xz-valve-ctrl"
   );
+
+  /* Setup all servos. */
+  for (size_t s = 0; s < NUM_SERVOS; s++)
+    if (!servo_ctrl[s].attach(SERVO_PINS[s], DEFAULT_MIN_PULSE_WIDTH, DEFAULT_MAX_PULSE_WIDTH, DEFAULT_NEUTRAL_PULSE_WIDTH))
+      DBG_ERROR("Failed to attach servo pin %d", s);
 
   /* Setup LED pins and initialize */
   pinMode(LED2_PIN, OUTPUT);
