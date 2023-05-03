@@ -47,9 +47,11 @@ static int const MCP2515_INT_PIN = 20;
 static int const LED2_PIN        = 21; /* GP21 */
 static int const LED3_PIN        = 22; /* GP22 */
 
-static SPISettings const MCP2515x_SPI_SETTING{10*1000*1000UL, MSBFIRST, SPI_MODE0};
-
 static uint16_t const UPDATE_PERIOD_HEARTBEAT_ms = 1000;
+
+static uint32_t const WATCHDOG_DELAY_ms = 1000;
+
+static SPISettings const MCP2515x_SPI_SETTING{10*1000*1000UL, MSBFIRST, SPI_MODE0};
 
 /**************************************************************************************
  * FUNCTION DECLARATION
@@ -369,6 +371,10 @@ void setup()
   /* Leave configuration and enable MCP2515. */
   mcp2515.setNormalMode();
 
+  /* Enable watchdog. */
+  rp2040.wdt_begin(WATCHDOG_DELAY_ms);
+  rp2040.wdt_reset();
+
   DBG_INFO("Init complete.");
 }
 
@@ -408,6 +414,12 @@ void loop()
     digitalWrite(LED2_PIN, !digitalRead(LED2_PIN));
     digitalWrite(LED_BUILTIN, !digitalRead(LED_BUILTIN));
   }
+
+  /* Feed the watchdog only if not an async reset is
+   * pending because we want to restart via yakut.
+   */
+  if (!cyphal::support::platform::is_async_reset_pending())
+    rp2040.wdt_reset();
 }
 
 /**************************************************************************************
@@ -442,6 +454,8 @@ ExecuteCommand::Response_1_1 onExecuteCommand_1_1_Request_Received(ExecuteComman
       rsp.status = ExecuteCommand::Response_1_1::STATUS_FAILURE;
       return rsp;
     }
+    /* Feed the watchdog. */
+    rp2040.wdt_reset();
 #if __GNUC__ >= 11
     auto const rc_save = cyphal::support::save(kv_storage, *node_registry);
     if (rc_save.has_value())
@@ -450,10 +464,13 @@ ExecuteCommand::Response_1_1 onExecuteCommand_1_1_Request_Received(ExecuteComman
       rsp.status = ExecuteCommand::Response_1_1::STATUS_FAILURE;
       return rsp;
     }
-     rsp.status = ExecuteCommand::Response_1_1::STATUS_SUCCESS;
+    /* Feed the watchdog. */
+    rp2040.wdt_reset();
+    rsp.status = uavcan::node::ExecuteCommand::Response_1_1::STATUS_SUCCESS;
 #endif /* __GNUC__ >= 11 */
     (void)filesystem.unmount();
-    rsp.status = ExecuteCommand::Response_1_1::STATUS_SUCCESS;
+    /* Feed the watchdog. */
+    rsp.status = uavcan::node::ExecuteCommand::Response_1_1::STATUS_SUCCESS;
   }
   else {
     rsp.status = ExecuteCommand::Response_1_1::STATUS_BAD_COMMAND;
