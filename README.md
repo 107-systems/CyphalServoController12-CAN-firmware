@@ -32,3 +32,11 @@ Set servo pulse width via `yakut` (`cyphal.sub.pulse_width.id` = `4001`):
 ```bash
 y pub -N1 4001:uavcan.primitive.array.Natural16.1.0 '[1000, 2000]'
 ```
+Set servo pulse with for all 12 channels via `yakut` (`cyphal.sub.pulse_width.id` = `4001`):
+```bash
+y pub -N1 4001:uavcan.primitive.array.Natural16.1.0 '[1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000]'
+...
+y pub -N1 4001:uavcan.primitive.array.Natural16.1.0 '[2000, 2000, 2000, 2000, 2000, 2000, 2000, 2000, 2000, 2000, 2000, 2000]'
+...
+y pub -N1 4001:uavcan.primitive.array.Natural16.1.0 '[1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500]'
+```
