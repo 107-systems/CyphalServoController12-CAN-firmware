@@ -458,7 +458,7 @@ ExecuteCommand::Response_1_1 onExecuteCommand_1_1_Request_Received(ExecuteComman
     /* Feed the watchdog. */
     rp2040.wdt_reset();
 #if __GNUC__ >= 11
-    auto const rc_save = cyphal::support::save(kv_storage, *node_registry);
+    auto const rc_save = cyphal::support::save(kv_storage, *node_registry, []() { rp2040.wdt_reset(); });
     if (rc_save.has_value())
     {
       DBG_ERROR("cyphal::support::save failed with %d", static_cast<int>(rc_save.value()));
