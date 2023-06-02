@@ -325,6 +325,10 @@ void setup()
   for (size_t s = 0; s < NUM_SERVOS; s++)
     servo_ctrl[s]->attach(SERVO_PINS[s]);
 
+  /* Turn all valves off. */
+  for (size_t sid = 0; sid < NUM_SERVOS; sid++)
+    servo_ctrl[sid]->writeMicroseconds(SERVO_PULSE_WIDTH_VALVE_OFF_ms);
+
   /* Setup LED pins and initialize */
   pinMode(LED2_PIN, OUTPUT);
   pinMode(LED3_PIN, OUTPUT);
