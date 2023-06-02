@@ -49,6 +49,10 @@ static int const LED3_PIN        = 22; /* GP22 */
 
 static uint16_t const UPDATE_PERIOD_HEARTBEAT_ms = 1000;
 
+static unsigned long const SERVO_PULSE_WIDTH_MESSAGE_TIMEOUT_ms = 1000;
+
+static uint16_t const SERVO_PULSE_WIDTH_VALVE_OFF_ms = 1500;
+
 static uint32_t const WATCHDOG_DELAY_ms = 1000;
 
 static SPISettings const MCP2515x_SPI_SETTING{10*1000*1000UL, MSBFIRST, SPI_MODE0};
@@ -81,6 +85,7 @@ Node node_hdl(node_heap.data(), node_heap.size(), micros, [] (CanardFrame const 
 Publisher<Heartbeat_1_0> heartbeat_pub = node_hdl.create_publisher<Heartbeat_1_0>(1*1000*1000UL /* = 1 sec in usecs. */);
 
 Subscription servo_pulse_width_sub;
+static unsigned long last_servo_pulse_width_msg_timestamp = 0;
 
 ServiceServer execute_command_srv = node_hdl.create_service_server<ExecuteCommand::Request_1_1, ExecuteCommand::Response_1_1>(2*1000*1000UL, onExecuteCommand_1_1_Request_Received);
 
@@ -267,6 +272,8 @@ void setup()
       port_id_pulse_width,
       [](uavcan::primitive::array::Natural16_1_0 const & msg)
       {
+        last_servo_pulse_width_msg_timestamp = millis();
+
         for (size_t sid = 0; sid < msg.value.size(); sid++)
         {
           if (sid >= NUM_SERVOS) {
@@ -317,6 +324,10 @@ void setup()
   /* Setup all servos. */
   for (size_t s = 0; s < NUM_SERVOS; s++)
     servo_ctrl[s]->attach(SERVO_PINS[s]);
+
+  /* Turn all valves off. */
+  for (size_t sid = 0; sid < NUM_SERVOS; sid++)
+    servo_ctrl[sid]->writeMicroseconds(SERVO_PULSE_WIDTH_VALVE_OFF_ms);
 
   /* Setup LED pins and initialize */
   pinMode(LED2_PIN, OUTPUT);
@@ -414,6 +425,15 @@ void loop()
 
     digitalWrite(LED2_PIN, !digitalRead(LED2_PIN));
     digitalWrite(LED_BUILTIN, !digitalRead(LED_BUILTIN));
+  }
+
+  /* If we have not received a servo pulse width message for
+   * more than SERVO_PULSE_WIDTH_MESSAGE_TIMEOUT_ms than
+   * we shut all valves off.
+   */
+  if ((now - last_servo_pulse_width_msg_timestamp) > SERVO_PULSE_WIDTH_MESSAGE_TIMEOUT_ms) {
+    for (size_t sid = 0; sid < NUM_SERVOS; sid++)
+      servo_ctrl[sid]->writeMicroseconds(SERVO_PULSE_WIDTH_VALVE_OFF_ms);
   }
 
   /* Feed the watchdog only if not an async reset is
