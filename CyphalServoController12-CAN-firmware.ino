@@ -2,7 +2,7 @@
  * This software is distributed under the terms of the MIT License.
  * Copyright (c) 2023 LXRobotics.
  * Author: Alexander Entinger <alexander.entinger@lxrobotics.com>
- * Contributors: https://github.com/107-systems/l3xz-valve-ctrl-firmware/graphs/contributors.
+ * Contributors: https://github.com/107-systems/CyphalServoController12-CAN-firmware/graphs/contributors.
  */
 
 /**************************************************************************************
