@@ -6,7 +6,7 @@
 [![Spell Check](https://github.com/107-systems/CyphalServoController12-CAN-firmware/workflows/Spell%20Check/badge.svg)](https://github.com/107-systems/CyphalServoController12-CAN-firmware/actions?workflow=Spell+Check)
 [![Compile Examples](https://github.com/107-systems/CyphalServoController12-CAN-firmware/workflows/Compile/badge.svg)](https://github.com/107-systems/CyphalServoController12-CAN-firmware/actions?workflow=Compile)
 
-Firmware for the [L3X-Z](https://github.com/107-systems/l3xz) valve controller which is based on the [OpenCyphalServoController12](https://github.com/generationmake/OpenCyphalServoController12) board.
+Firmware for the 12-chanel PWM servo controller which is based on the [OpenCyphalServoController12](https://github.com/generationmake/OpenCyphalServoController12) board.
 
 <p align="center">
   <a href="https://github.com/107-systems/l3xz"><img src="https://raw.githubusercontent.com/107-systems/.github/main/logo/l3xz-logo-memento-mori-github.png" width="40%"></a>

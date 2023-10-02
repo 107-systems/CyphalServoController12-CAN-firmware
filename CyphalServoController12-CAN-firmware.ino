@@ -318,7 +318,7 @@ void setup()
     /* saturated uint8[16] unique_id */
     cyphal::support::UniqueId::instance().value(),
     /* saturated uint8[<=50] name */
-    "107-systems.l3xz-valve-ctrl"
+    "107-systems.CyphalServoController12/CAN"
   );
 
   /* Setup all servos. */
